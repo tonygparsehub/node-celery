@@ -272,8 +272,9 @@ function Task(client, name, options, exchange) {
 
     self.publish = function (args, kwargs, options, callback) {
         var id = options.id || uuid.v4();
+        var ignore_result = options.ignore_result;
 
-        var result = new Result(id, self.client);
+        var result = new Result(id, self.client, ignore_result);
 
         if (client.conf.backend_type === 'redis') {
             client.backend.results[result.taskid] = result;
@@ -311,7 +312,7 @@ Task.prototype.call = function(args, kwargs, options, callback) {
     }
 };
 
-function Result(taskid, client) {
+function Result(taskid, client, ignore_result) {
     var self = this;
 
     events.EventEmitter.call(self);
@@ -319,7 +320,7 @@ function Result(taskid, client) {
     self.client = client;
     self.result = null;
 
-    if (self.client.conf.backend_type === 'amqp' && !self.client.conf.IGNORE_RESULT) {
+    if (self.client.conf.backend_type === 'amqp' && !self.client.conf.IGNORE_RESULT && !ignore_result) {
         debug('Subscribing to result queue...');
         self.client.backend.queue(
             self.taskid.replace(/-/g, ''), {
